@@ -5,7 +5,10 @@ const path = require("path");
 const authRoutes = require("./routes/auth.routes");
 const cartRoutes = require("./routes/cart.routes");
 const productRoutes = require("./routes/product.routes");
+const addressRoutes = require("./routes/address.routes");
+const userRoutes = require("./routes/user.routes");
 const Product = require("./models/Product");
+const User = require("./models/User");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -36,8 +39,9 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 app.get("/api/v1/admin/stats", async (req, res) => {
   const totalProducts = await Product.countDocuments();
+  const totalUsers = await User.countDocuments();
   res.json({
-    totalUsers: 0,
+    totalUsers,
     totalProducts,
     totalOrders: 0,
     totalRevenue: 0,
@@ -49,6 +53,8 @@ app.get("/api/v1/admin/stats", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/addresses", addressRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
