@@ -16,6 +16,7 @@ const productSchema = new mongoose.Schema(
     abv: { type: String, default: "" },
     volume: { type: String, default: "" },
     manufacturer: { type: String, default: "" },
+    brand: { type: String, default: "" },
     origin: { type: String, default: "" },
     description: { type: String, default: "" },
   },
