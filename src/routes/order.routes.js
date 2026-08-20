@@ -34,6 +34,20 @@ router.post("/storefront", createStorefront);
 
 /*
  * ---------------------------------------------------------
+ * POST /api/orders/storefront
+ *
+ * Create a new order from the storefront's local (client-side)
+ * cart, used by the main SipNow website's checkout page.
+ * ---------------------------------------------------------
+ */
+router.post(
+  "/storefront",
+  requireAuth,
+  createStorefront
+);
+
+/*
+ * ---------------------------------------------------------
  * GET /api/orders
  *
  * Admin: all orders
