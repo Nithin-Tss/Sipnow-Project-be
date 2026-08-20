@@ -64,15 +64,12 @@ function deriveDisplayFields(data) {
   }
 }
 
-productSchema.pre("save", function (next) {
+productSchema.pre("save", function () {
   deriveDisplayFields(this);
-  next();
 });
 
-productSchema.pre("findOneAndUpdate", function (next) {
-  const update = this.getUpdate();
-  deriveDisplayFields(update);
-  next();
+productSchema.pre("findOneAndUpdate", function () {
+  deriveDisplayFields(this.getUpdate());
 });
 
 module.exports = mongoose.model("Product", productSchema);
