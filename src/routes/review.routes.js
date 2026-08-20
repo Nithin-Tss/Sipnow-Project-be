@@ -11,7 +11,7 @@ const {
   updateStatus,
 } = require("../controllers/review.controller");
 
-const { protect } = require("../middleware/auth.middleware");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 
 /*
  * ---------------------------------------------------------
@@ -46,7 +46,7 @@ router.get(
  */
 router.post(
   "/",
-  protect,
+  requireAuth,
   create
 );
 
@@ -59,7 +59,7 @@ router.post(
  */
 router.put(
   "/:id",
-  protect,
+  requireAuth,
   update
 );
 
@@ -72,7 +72,8 @@ router.put(
  */
 router.patch(
   "/:id/status",
-  protect,
+  requireAuth,
+  requireAdmin,
   updateStatus
 );
 
@@ -85,7 +86,7 @@ router.patch(
  */
 router.delete(
   "/:id",
-  protect,
+  requireAuth,
   remove
 );
 

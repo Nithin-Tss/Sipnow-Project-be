@@ -9,7 +9,7 @@ const {
   refundPayment,
 } = require("../controllers/payment.controller");
 
-const { protect } = require("../middleware/auth.middleware");
+const { requireAuth } = require("../middleware/auth");
 
 /*
  * ---------------------------------------------------------
@@ -20,7 +20,7 @@ const { protect } = require("../middleware/auth.middleware");
  */
 router.post(
   "/",
-  protect,
+  requireAuth,
   createPayment
 );
 
@@ -33,7 +33,7 @@ router.post(
  */
 router.post(
   "/verify",
-  protect,
+  requireAuth,
   verifyPayment
 );
 
@@ -46,7 +46,7 @@ router.post(
  */
 router.get(
   "/:paymentId/status",
-  protect,
+  requireAuth,
   getPaymentStatus
 );
 
@@ -59,7 +59,7 @@ router.get(
  */
 router.post(
   "/:paymentId/refund",
-  protect,
+  requireAuth,
   refundPayment
 );
 

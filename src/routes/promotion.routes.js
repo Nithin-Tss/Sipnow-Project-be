@@ -12,7 +12,7 @@ const {
   remove,
 } = require("../controllers/promotion.controller");
 
-const { protect } = require("../middleware/auth.middleware");
+const { requireAuth, requireAdmin } = require("../middleware/auth");
 
 /*
  * ---------------------------------------------------------
@@ -23,7 +23,8 @@ const { protect } = require("../middleware/auth.middleware");
  */
 router.get(
   "/",
-  protect,
+  requireAuth,
+  requireAdmin,
   list
 );
 
@@ -60,7 +61,8 @@ router.get(
  */
 router.post(
   "/",
-  protect,
+  requireAuth,
+  requireAdmin,
   create
 );
 
@@ -73,7 +75,8 @@ router.post(
  */
 router.put(
   "/:id",
-  protect,
+  requireAuth,
+  requireAdmin,
   update
 );
 
@@ -86,7 +89,8 @@ router.put(
  */
 router.patch(
   "/:id/status",
-  protect,
+  requireAuth,
+  requireAdmin,
   updateStatus
 );
 
@@ -99,7 +103,8 @@ router.patch(
  */
 router.delete(
   "/:id",
-  protect,
+  requireAuth,
+  requireAdmin,
   remove
 );
 
