@@ -2,20 +2,10 @@ const mongoose = require("mongoose");
 
 const Brand = require("../models/Brand");
 
-/*
- * ---------------------------------------------------------
- * Helper: Check whether a value is a valid MongoDB ObjectId
- * ---------------------------------------------------------
- */
 function isValidObjectId(value) {
   return mongoose.Types.ObjectId.isValid(value);
 }
 
-/*
- * ---------------------------------------------------------
- * Helper: Turn a brand name into a URL-safe slug
- * ---------------------------------------------------------
- */
 function slugify(value) {
   return value
     .trim()
@@ -27,13 +17,15 @@ function slugify(value) {
 /*
  * ---------------------------------------------------------
  * GET /api/brands
- *
- * Public callers only see active brands.
- * Admins may pass ?all=true to include inactive brands.
  * ---------------------------------------------------------
  */
 async function list(req, res) {
-  const { all } = req.query;
+  const {
+    all,
+    search = "",
+    page = 1,
+    perPage = 20,
+  } = req.query;
 
   const filter = {};
 
@@ -41,12 +33,45 @@ async function list(req, res) {
     filter.isActive = true;
   }
 
-  const brands = await Brand.find(filter).sort({
-    name: 1,
-  });
+  if (search.trim()) {
+    filter.$or = [
+      {
+        name: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+      {
+        slug: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  const currentPage = Math.max(Number(page) || 1, 1);
+  const limit = Math.max(Number(perPage) || 20, 1);
+  const skip = (currentPage - 1) * limit;
+
+  const [brands, total] = await Promise.all([
+    Brand.find(filter)
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit),
+
+    Brand.countDocuments(filter),
+  ]);
 
   res.json({
-    brands,
+    items: brands,
+    total,
+    page: currentPage,
+    perPage: limit,
+    totalPages: Math.max(
+      1,
+      Math.ceil(total / limit)
+    ),
   });
 }
 
@@ -78,8 +103,6 @@ async function getOne(req, res) {
 /*
  * ---------------------------------------------------------
  * POST /api/brands
- *
- * Create a brand (Admin)
  * ---------------------------------------------------------
  */
 async function create(req, res) {
@@ -87,7 +110,12 @@ async function create(req, res) {
     name,
     description = "",
     logo = "",
+    bannerImage = "",
+    bestSellingDescription = "",
+    bestRatedDescription = "",
+    collectionDescription = "",
     isActive = true,
+    verified = false,
   } = req.body;
 
   if (!name || !name.trim()) {
@@ -96,10 +124,14 @@ async function create(req, res) {
     });
   }
 
-  const slug = slugify(name);
+  const cleanName = name.trim();
+  const slug = slugify(cleanName);
 
   const existing = await Brand.findOne({
-    $or: [{ name: name.trim() }, { slug }],
+    $or: [
+      { name: cleanName },
+      { slug },
+    ],
   });
 
   if (existing) {
@@ -108,12 +140,23 @@ async function create(req, res) {
     });
   }
 
+  const verificationEmail =
+    verified && req.user?.email
+      ? req.user.email
+      : "";
+
   const brand = await Brand.create({
-    name: name.trim(),
+    name: cleanName,
     slug,
     description,
     logo,
-    isActive,
+    bannerImage,
+    bestSellingDescription,
+    bestRatedDescription,
+    collectionDescription,
+    isActive: Boolean(isActive),
+    verified: Boolean(verified),
+    verificationEmail,
   });
 
   res.status(201).json({
@@ -125,14 +168,22 @@ async function create(req, res) {
 /*
  * ---------------------------------------------------------
  * PUT /api/brands/:id
- *
- * Update a brand (Admin)
  * ---------------------------------------------------------
  */
 async function update(req, res) {
   const { id } = req.params;
 
-  const { name, description, logo, isActive } = req.body;
+  const {
+    name,
+    description,
+    logo,
+    bannerImage,
+    bestSellingDescription,
+    bestRatedDescription,
+    collectionDescription,
+    isActive,
+    verified,
+  } = req.body;
 
   if (!isValidObjectId(id)) {
     return res.status(400).json({
@@ -155,11 +206,15 @@ async function update(req, res) {
       });
     }
 
-    const slug = slugify(name);
+    const cleanName = name.trim();
+    const slug = slugify(cleanName);
 
     const duplicate = await Brand.findOne({
       _id: { $ne: id },
-      $or: [{ name: name.trim() }, { slug }],
+      $or: [
+        { name: cleanName },
+        { slug },
+      ],
     });
 
     if (duplicate) {
@@ -168,13 +223,48 @@ async function update(req, res) {
       });
     }
 
-    brand.name = name.trim();
+    brand.name = cleanName;
     brand.slug = slug;
   }
 
-  if (description !== undefined) brand.description = description;
-  if (logo !== undefined) brand.logo = logo;
-  if (isActive !== undefined) brand.isActive = Boolean(isActive);
+  if (description !== undefined) {
+    brand.description = description;
+  }
+
+  if (logo !== undefined) {
+    brand.logo = logo;
+  }
+
+  if (bannerImage !== undefined) {
+    brand.bannerImage = bannerImage;
+  }
+
+  if (bestSellingDescription !== undefined) {
+    brand.bestSellingDescription = bestSellingDescription;
+  }
+
+  if (bestRatedDescription !== undefined) {
+    brand.bestRatedDescription = bestRatedDescription;
+  }
+
+  if (collectionDescription !== undefined) {
+    brand.collectionDescription = collectionDescription;
+  }
+
+  if (isActive !== undefined) {
+    brand.isActive = Boolean(isActive);
+  }
+
+  if (verified !== undefined) {
+    brand.verified = Boolean(verified);
+
+    if (brand.verified) {
+      brand.verificationEmail =
+        req.user?.email || brand.verificationEmail || "";
+    } else {
+      brand.verificationEmail = "";
+    }
+  }
 
   await brand.save();
 
@@ -187,8 +277,6 @@ async function update(req, res) {
 /*
  * ---------------------------------------------------------
  * PATCH /api/brands/:id/status
- *
- * Activate / deactivate a brand (Admin)
  * ---------------------------------------------------------
  */
 async function updateStatus(req, res) {
@@ -210,7 +298,10 @@ async function updateStatus(req, res) {
   const brand = await Brand.findByIdAndUpdate(
     id,
     { isActive },
-    { new: true, runValidators: true }
+    {
+      new: true,
+      runValidators: true,
+    }
   );
 
   if (!brand) {
@@ -228,8 +319,6 @@ async function updateStatus(req, res) {
 /*
  * ---------------------------------------------------------
  * DELETE /api/brands/:id
- *
- * Delete a brand (Admin)
  * ---------------------------------------------------------
  */
 async function remove(req, res) {
