@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     categoryGroup: {
       type: String,
-      enum: ["wine", "spirits", "beer", "offers"],
+      enum: ["wine", "spirits", "beer", "premix", "offers"],
       default: "wine",
     },
     brand: { type: String, default: "" },
