@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
+const Coupon = require("../models/Coupon");
 
 /*
  * ---------------------------------------------------------
@@ -27,6 +28,8 @@ async function create(req, res) {
     shippingAddress,
     payment,
     discount = 0,
+    couponId = null,
+    couponCode = "",
     shippingCharge = 0,
     tax = 0,
     offer = null,
@@ -254,6 +257,129 @@ async function create(req, res) {
     message: "Order created successfully",
     order: populatedOrder,
   });
+}
+
+/* Create an order from the storefront checkout snapshot. */
+async function createStorefront(req, res) {
+  const {
+    customer = {},
+    cartItems = [],
+    deliveryAddress = null,
+    fulfilment = "delivery",
+    discount = 0,
+    couponId = null,
+    couponCode = "",
+    total,
+  } = req.body;
+
+  if (!Array.isArray(cartItems) || cartItems.length === 0) {
+    return res.status(400).json({ message: "Your cart is empty" });
+  }
+
+  if (!["delivery", "store-pickup"].includes(fulfilment)) {
+    return res.status(400).json({ message: "Invalid fulfilment type" });
+  }
+
+  const email = String(customer.email || `guest-${Date.now()}@sipnow.local`)
+    .trim()
+    .toLowerCase();
+  let user = await require("../models/User").findOne({ email });
+  if (!user) {
+    user = await require("../models/User").create({
+      name: String(customer.name || "SipNow customer").trim(),
+      email,
+      password: require("crypto").randomBytes(32).toString("hex"),
+      phone: String(customer.mobile || "").trim(),
+    });
+  }
+
+  const orderItems = [];
+  for (const item of cartItems) {
+    const productId = item.product?._id || item.product?.id;
+    const product = isValidObjectId(productId)
+      ? await Product.findById(productId)
+      : await Product.findOne({ name: item.product?.name });
+    if (!product) continue;
+
+    const quantity = Math.max(
+      1,
+      (Number(item.quantity) || 1) * (Number(item.packSize) || 1)
+    );
+    const price = Number(product.price) || 0;
+    orderItems.push({
+      product: product._id,
+      name: product.name,
+      image: product.image || "",
+      price,
+      quantity,
+      total: price * quantity,
+    });
+  }
+
+  if (!orderItems.length) {
+    return res.status(400).json({ message: "No valid products were found" });
+  }
+
+  const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+  let coupon = null;
+  let safeDiscount = 0;
+  if (couponId || couponCode) {
+    coupon = couponId && isValidObjectId(couponId)
+      ? await Coupon.findById(couponId)
+      : await Coupon.findOne({ code: String(couponCode).trim().toUpperCase() });
+    if (!coupon || !coupon.active || (coupon.expiresAt && coupon.expiresAt < new Date())) {
+      return res.status(400).json({ message: "This coupon is no longer valid" });
+    }
+    if (subtotal < Number(coupon.minPurchase || 0)) {
+      return res.status(400).json({ message: "The coupon minimum purchase is not met" });
+    }
+    if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+      return res.status(400).json({ message: "Coupon usage limit has been reached" });
+    }
+    safeDiscount = coupon.discountType === "percentage"
+      ? subtotal * Number(coupon.discountValue) / 100
+      : Number(coupon.discountValue);
+    if (coupon.maxDiscount !== null && coupon.maxDiscount !== undefined) {
+      safeDiscount = Math.min(safeDiscount, Number(coupon.maxDiscount));
+    }
+    safeDiscount = Math.min(subtotal, Math.max(0, Number(safeDiscount.toFixed(2))));
+  }
+  const shippingAddress = fulfilment === "delivery"
+    ? {
+        fullName: String(customer.name || user.name).trim(),
+        phone: String(customer.mobile || user.phone || "").trim(),
+        addressLine1: String(deliveryAddress?.address || "").trim(),
+        addressLine2: "",
+        city: String(deliveryAddress?.city || "").trim(),
+        state: "N/A",
+        postalCode: "N/A",
+        country: "Australia",
+      }
+    : null;
+
+  const order = await Order.create({
+    user: user._id,
+    items: orderItems,
+    shippingAddress,
+    fulfilment,
+    subtotal,
+    discount: safeDiscount,
+    coupon: coupon?._id || null,
+    couponCode: coupon?.code || "",
+    shippingCharge: 0,
+    tax: 0,
+    totalAmount: Math.max(0, subtotal - safeDiscount),
+    payment: { method: "card", status: "pending" },
+    status: "pending",
+  });
+
+  if (coupon) {
+    coupon.usedCount += 1;
+    await coupon.save();
+  }
+
+  const populatedOrder = await Order.findById(order._id).populate("user", "name email");
+  res.status(201).json({ message: "Order created successfully", order: populatedOrder });
 }
 
 /*
@@ -709,6 +835,7 @@ async function getStatus(req, res) {
 
 module.exports = {
   create,
+  createStorefront,
   list,
   getMyOrders,
   getOne,
