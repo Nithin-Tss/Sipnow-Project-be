@@ -56,6 +56,21 @@ const promotionSchema = new mongoose.Schema(
     },
 
     /*
+     * Optional display copy for banner-style promotion cards
+     */
+    ctaText: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    validityLabel: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    /*
      * Products included in the promotion
      */
     products: [
@@ -137,14 +152,12 @@ const promotionSchema = new mongoose.Schema(
 /*
  * Validate discount values and dates.
  */
-promotionSchema.pre("validate", function (next) {
+promotionSchema.pre("validate", function () {
   if (
     this.discountType === "percentage" &&
     this.discountValue > 100
   ) {
-    return next(
-      new Error("Percentage discount cannot exceed 100")
-    );
+    throw new Error("Percentage discount cannot exceed 100");
   }
 
   if (
@@ -158,12 +171,8 @@ promotionSchema.pre("validate", function (next) {
     this.endDate &&
     this.startDate > this.endDate
   ) {
-    return next(
-      new Error("Start date cannot be after end date")
-    );
+    throw new Error("Start date cannot be after end date");
   }
-
-  next();
 });
 
 /*

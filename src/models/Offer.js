@@ -83,14 +83,12 @@ const offerSchema = new mongoose.Schema(
 /*
  * Validate percentage discounts.
  */
-offerSchema.pre("validate", function (next) {
+offerSchema.pre("validate", function () {
   if (
     this.discountType === "percentage" &&
     this.discountValue > 100
   ) {
-    return next(
-      new Error("Percentage discount cannot exceed 100")
-    );
+    throw new Error("Percentage discount cannot exceed 100");
   }
 
   if (
@@ -98,12 +96,8 @@ offerSchema.pre("validate", function (next) {
     this.endDate &&
     this.startDate > this.endDate
   ) {
-    return next(
-      new Error("Start date cannot be after end date")
-    );
+    throw new Error("Start date cannot be after end date");
   }
-
-  next();
 });
 
 /*

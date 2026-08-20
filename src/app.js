@@ -20,6 +20,8 @@ const offerRoutes = require("./routes/offer.routes");
 const orderRoutes = require("./routes/order.routes");
 const categoryRoutes = require("./routes/category.routes");
 const brandRoutes = require("./routes/brand.routes");
+const heroSlideRoutes = require("./routes/heroSlide.routes");
+const quizRoutes = require("./routes/quiz.routes");
 const Product = require("./models/Product");
 const User = require("./models/User");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -81,6 +83,8 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/brands", brandRoutes);
+app.use("/api/hero-slides", heroSlideRoutes);
+app.use("/api/quiz", quizRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

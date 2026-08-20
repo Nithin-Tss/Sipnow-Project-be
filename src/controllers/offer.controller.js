@@ -6,7 +6,7 @@ const Offer = require("../models/Offer");
  */
 async function list(req, res) {
   const offers = await Offer.find()
-    .populate("applicableProducts", "name price image brand")
+    .populate("applicableProducts", "name price image brand category")
     .populate("applicableCategories", "name")
     .sort({ createdAt: -1 });
 
@@ -41,7 +41,7 @@ async function getActiveOffers(req, res) {
       },
     ],
   })
-    .populate("applicableProducts", "name price image brand")
+    .populate("applicableProducts", "name price image brand category")
     .populate("applicableCategories", "name")
     .sort({ createdAt: -1 });
 
@@ -56,7 +56,7 @@ async function getActiveOffers(req, res) {
  */
 async function getOne(req, res) {
   const offer = await Offer.findById(req.params.id)
-    .populate("applicableProducts", "name price image brand")
+    .populate("applicableProducts", "name price image brand category")
     .populate("applicableCategories", "name");
 
   if (!offer) {
