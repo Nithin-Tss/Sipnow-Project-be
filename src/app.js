@@ -16,6 +16,8 @@ const paymentRoutes = require("./routes/payment.routes");
 const promotionRoutes = require("./routes/promotion.routes");
 const reviewRoutes = require("./routes/review.routes");
 const storeRoutes = require("./routes/store.routes");
+const offerRoutes = require("./routes/offer.routes");
+const orderRoutes = require("./routes/order.routes");
 const Product = require("./models/Product");
 const User = require("./models/User");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -73,6 +75,8 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/promotions", promotionRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/stores", storeRoutes);
+app.use("/api/offers", offerRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
