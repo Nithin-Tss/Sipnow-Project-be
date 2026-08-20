@@ -6,20 +6,17 @@ const brandSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
     },
 
     slug: {
       type: String,
-      trim: true,
-      lowercase: true,
+      required: true,
       unique: true,
-      sparse: true,
+      trim: true,
     },
 
     description: {
       type: String,
-      trim: true,
       default: "",
     },
 
@@ -28,9 +25,39 @@ const brandSchema = new mongoose.Schema(
       default: "",
     },
 
+    bannerImage: {
+      type: String,
+      default: "",
+    },
+
+    bestSellingDescription: {
+      type: String,
+      default: "",
+    },
+
+    bestRatedDescription: {
+      type: String,
+      default: "",
+    },
+
+    collectionDescription: {
+      type: String,
+      default: "",
+    },
+
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    verified: {
+      type: Boolean,
+      default: false,
+    },
+
+    verificationEmail: {
+      type: String,
+      default: "",
     },
   },
   {
