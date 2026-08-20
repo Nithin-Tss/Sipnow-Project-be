@@ -46,4 +46,18 @@ async function remove(req, res) {
   res.status(204).send();
 }
 
-module.exports = { list, getOne, create, update, remove };
+async function verify(req, res) {
+  const verified = Boolean(req.body.verified);
+  const product = await Product.findByIdAndUpdate(
+    req.params.id,
+    {
+      verified,
+      verificationEmail: verified ? req.user.email : "",
+    },
+    { new: true, runValidators: true },
+  );
+  if (!product) return res.status(404).json({ message: "Product not found" });
+  res.json(product);
+}
+
+module.exports = { list, getOne, create, update, remove, verify };
