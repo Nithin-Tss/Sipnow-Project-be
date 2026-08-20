@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   create,
+  createStorefront,
   list,
   getMyOrders,
   getOne,
@@ -28,6 +29,8 @@ router.post(
   requireAuth,
   create
 );
+
+router.post("/storefront", createStorefront);
 
 /*
  * ---------------------------------------------------------

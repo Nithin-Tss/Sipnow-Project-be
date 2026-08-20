@@ -163,7 +163,15 @@ const orderSchema = new mongoose.Schema(
      */
     shippingAddress: {
       type: shippingAddressSchema,
-      required: true,
+      required: false,
+      default: null,
+    },
+
+    fulfilment: {
+      type: String,
+      enum: ["delivery", "store-pickup"],
+      default: "delivery",
+      index: true,
     },
 
     /*
@@ -209,6 +217,18 @@ const orderSchema = new mongoose.Schema(
     },
 
     offerCode: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    coupon: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Coupon",
+      default: null,
+    },
+
+    couponCode: {
       type: String,
       trim: true,
       default: "",
@@ -297,7 +317,7 @@ const orderSchema = new mongoose.Schema(
  * Automatically calculate each item's total
  * and order subtotal before validation.
  */
-orderSchema.pre("validate", function (next) {
+orderSchema.pre("validate", function () {
   if (this.items && this.items.length > 0) {
     this.items.forEach((item) => {
       item.total = item.price * item.quantity;
@@ -318,7 +338,6 @@ orderSchema.pre("validate", function (next) {
     this.subtotal - discount + shippingCharge + tax
   );
 
-  next();
 });
 
 module.exports = mongoose.model("Order", orderSchema);
