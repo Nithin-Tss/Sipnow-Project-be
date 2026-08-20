@@ -6,7 +6,12 @@ async function list(req, res) {
   const q = (req.query.q || "").trim();
 
   const filter = q
-    ? { $or: [{ name: new RegExp(q, "i") }, { category: new RegExp(q, "i") }] }
+    ? {
+        $or: [
+          { name: new RegExp(q, "i") },
+          { category: new RegExp(q, "i") },
+        ],
+      }
     : {};
 
   const [items, total] = await Promise.all([

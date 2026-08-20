@@ -276,9 +276,11 @@ async function createStorefront(req, res) {
     return res.status(400).json({ message: "Your cart is empty" });
   }
 
-  if (!["delivery", "pickup"].includes(fulfilment)) {
+  if (!["delivery", "pickup", "store-pickup"].includes(fulfilment)) {
     return res.status(400).json({ message: "Invalid fulfilment type" });
   }
+
+  const orderFulfilment = fulfilment === "pickup" ? "store-pickup" : fulfilment;
 
   const email = String(customer.email || `guest-${Date.now()}@sipnow.local`)
     .trim()
@@ -300,6 +302,12 @@ async function createStorefront(req, res) {
       ? await Product.findById(productId)
       : await Product.findOne({ name: item.product?.name });
     if (!product) continue;
+
+    if (!product.verified) {
+      return res.status(400).json({
+        message: `${product.name} is not available for ordering until it is verified.`,
+      });
+    }
 
     const quantity = Math.max(
       1,
@@ -344,7 +352,7 @@ async function createStorefront(req, res) {
     }
     safeDiscount = Math.min(subtotal, Math.max(0, Number(safeDiscount.toFixed(2))));
   }
-  const shippingAddress = fulfilment === "delivery"
+  const shippingAddress = orderFulfilment === "delivery"
     ? {
         fullName: String(customer.name || user.name).trim(),
         phone: String(customer.mobile || user.phone || "").trim(),
@@ -370,7 +378,7 @@ async function createStorefront(req, res) {
     user: user._id,
     items: orderItems,
     shippingAddress,
-    fulfilment,
+    fulfilment: orderFulfilment,
     subtotal,
     discount: safeDiscount,
     coupon: coupon?._id || null,
