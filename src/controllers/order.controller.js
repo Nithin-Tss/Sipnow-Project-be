@@ -276,7 +276,7 @@ async function createStorefront(req, res) {
     return res.status(400).json({ message: "Your cart is empty" });
   }
 
-  if (!["delivery", "store-pickup"].includes(fulfilment)) {
+  if (!["delivery", "pickup"].includes(fulfilment)) {
     return res.status(400).json({ message: "Invalid fulfilment type" });
   }
 
@@ -355,7 +355,16 @@ async function createStorefront(req, res) {
         postalCode: "N/A",
         country: "Australia",
       }
-    : null;
+    : {
+        fullName: String(customer.name || user.name).trim(),
+        phone: String(customer.mobile || user.phone || "").trim(),
+        addressLine1: "In-store pickup",
+        addressLine2: "",
+        city: "Pickup",
+        state: "N/A",
+        postalCode: "N/A",
+        country: "Australia",
+      };
 
   const order = await Order.create({
     user: user._id,

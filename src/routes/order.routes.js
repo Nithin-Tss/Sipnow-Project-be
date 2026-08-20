@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   create,
+  createStorefront,
   list,
   getMyOrders,
   getOne,
@@ -27,6 +28,20 @@ router.post(
   "/",
   requireAuth,
   create
+);
+
+/*
+ * ---------------------------------------------------------
+ * POST /api/orders/storefront
+ *
+ * Create a new order from the storefront's local (client-side)
+ * cart, used by the main SipNow website's checkout page.
+ * ---------------------------------------------------------
+ */
+router.post(
+  "/storefront",
+  requireAuth,
+  createStorefront
 );
 
 /*
