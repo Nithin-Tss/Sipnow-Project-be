@@ -9,8 +9,6 @@ async function list(req, res) {
     ? { $or: [{ name: new RegExp(q, "i") }, { category: new RegExp(q, "i") }] }
     : {};
 
-  if (req.query.verified === "true") filter.verified = true;
-
   const [items, total] = await Promise.all([
     Product.find(filter)
       .sort({ createdAt: -1 })
