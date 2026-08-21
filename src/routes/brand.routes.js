@@ -7,41 +7,47 @@ const {
   getOne,
   create,
   update,
+  verify,
   remove,
   updateStatus,
 } = require("../controllers/brand.controller");
 
-const { requireAuth, requireAdmin } = require("../middleware/auth");
+const {
+  requireAuth,
+  requireAdmin,
+  optionalAuth,
+} = require("../middleware/auth");
 
 /*
  * ---------------------------------------------------------
  * GET /api/brands
  *
- * Get all brands
+ * Public callers only see active + verified brands; an admin
+ * passing ?all=true sees everything. optionalAuth decodes the
+ * token when present (without it, req.user is never set and
+ * the admin "see everything" branch below can never trigger).
  * ---------------------------------------------------------
  */
 router.get(
   "/",
+  optionalAuth,
   list
 );
 
 /*
  * ---------------------------------------------------------
  * GET /api/brands/:id
- *
- * Get one brand
  * ---------------------------------------------------------
  */
 router.get(
   "/:id",
+  optionalAuth,
   getOne
 );
 
 /*
  * ---------------------------------------------------------
  * POST /api/brands
- *
- * Create a brand
  * ---------------------------------------------------------
  */
 router.post(
@@ -54,8 +60,6 @@ router.post(
 /*
  * ---------------------------------------------------------
  * PUT /api/brands/:id
- *
- * Update brand
  * ---------------------------------------------------------
  */
 router.put(
@@ -67,9 +71,19 @@ router.put(
 
 /*
  * ---------------------------------------------------------
+ * PATCH /api/brands/:id/verify
+ * ---------------------------------------------------------
+ */
+router.patch(
+  "/:id/verify",
+  requireAuth,
+  requireAdmin,
+  verify
+);
+
+/*
+ * ---------------------------------------------------------
  * PATCH /api/brands/:id/status
- *
- * Activate / deactivate brand
  * ---------------------------------------------------------
  */
 router.patch(
@@ -82,8 +96,6 @@ router.patch(
 /*
  * ---------------------------------------------------------
  * DELETE /api/brands/:id
- *
- * Delete brand
  * ---------------------------------------------------------
  */
 router.delete(

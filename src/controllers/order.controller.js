@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const Coupon = require("../models/Coupon");
+const User = require("../models/User");
 
 /*
  * ---------------------------------------------------------
@@ -282,17 +284,37 @@ async function createStorefront(req, res) {
 
   const orderFulfilment = fulfilment === "pickup" ? "store-pickup" : fulfilment;
 
-  const email = String(customer.email || `guest-${Date.now()}@sipnow.local`)
-    .trim()
-    .toLowerCase();
-  let user = await require("../models/User").findOne({ email });
+  /*
+   * A logged-in storefront customer sends their JWT, so the order is
+   * attached to their real account instead of a freshly minted guest one.
+   * Unauthenticated checkouts (no token, or an expired/invalid one) keep
+   * falling back to the existing email-matched guest account.
+   */
+  let user = null;
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      user = await User.findById(payload.sub);
+    } catch {
+      user = null;
+    }
+  }
+
   if (!user) {
-    user = await require("../models/User").create({
-      name: String(customer.name || "SipNow customer").trim(),
-      email,
-      password: require("crypto").randomBytes(32).toString("hex"),
-      phone: String(customer.mobile || "").trim(),
-    });
+    const email = String(customer.email || `guest-${Date.now()}@sipnow.local`)
+      .trim()
+      .toLowerCase();
+    user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
+        name: String(customer.name || "SipNow customer").trim(),
+        email,
+        password: require("crypto").randomBytes(32).toString("hex"),
+        phone: String(customer.mobile || "").trim(),
+      });
+    }
   }
 
   const orderItems = [];
