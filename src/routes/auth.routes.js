@@ -1,10 +1,17 @@
 const { Router } = require("express");
-const { body } = require("express-validator");
-const { register, login, me } = require("../controllers/auth.controller");
+const { body, query } = require("express-validator");
+const { checkEmail, register, login, me } = require("../controllers/auth.controller");
 const { validate } = require("../middleware/validate");
 const { requireAuth } = require("../middleware/auth");
 
 const router = Router();
+
+router.get(
+  "/check-email",
+  [query("email").isEmail().withMessage("Valid email is required")],
+  validate,
+  checkEmail
+);
 
 router.post(
   "/register",

@@ -29,8 +29,16 @@ async function list(req, res) {
 
   const filter = {};
 
-  if (!(req.user?.role === "admin" && all === "true")) {
+  const isAdminRequest =
+    req.user?.role === "admin" &&
+    all === "true";
+
+  if (isAdminRequest) {
+    // Admin can see both verified and unverified brands.
+  } else {
+    // Customers can only see active + verified brands.
     filter.isActive = true;
+    filter.verified = true;
   }
 
   if (search.trim()) {
@@ -50,18 +58,27 @@ async function list(req, res) {
     ];
   }
 
-  const currentPage = Math.max(Number(page) || 1, 1);
-  const limit = Math.max(Number(perPage) || 20, 1);
+  const currentPage = Math.max(
+    Number(page) || 1,
+    1
+  );
+
+  const limit = Math.max(
+    Number(perPage) || 20,
+    1
+  );
+
   const skip = (currentPage - 1) * limit;
 
-  const [brands, total] = await Promise.all([
-    Brand.find(filter)
-      .sort({ name: 1 })
-      .skip(skip)
-      .limit(limit),
+  const [brands, total] =
+    await Promise.all([
+      Brand.find(filter)
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit),
 
-    Brand.countDocuments(filter),
-  ]);
+      Brand.countDocuments(filter),
+    ]);
 
   res.json({
     items: brands,
@@ -95,6 +112,21 @@ async function getOne(req, res) {
     return res.status(404).json({
       message: "Brand not found",
     });
+  }
+
+  // Public users cannot access unverified brands.
+  if (
+    !req.user?.role ||
+    req.user.role !== "admin"
+  ) {
+    if (
+      !brand.isActive ||
+      !brand.verified
+    ) {
+      return res.status(404).json({
+        message: "Brand not found",
+      });
+    }
   }
 
   res.json(brand);
@@ -136,7 +168,8 @@ async function create(req, res) {
 
   if (existing) {
     return res.status(409).json({
-      message: "A brand with this name already exists",
+      message:
+        "A brand with this name already exists",
     });
   }
 
@@ -202,24 +235,27 @@ async function update(req, res) {
   if (name !== undefined) {
     if (!name.trim()) {
       return res.status(400).json({
-        message: "Brand name cannot be empty",
+        message:
+          "Brand name cannot be empty",
       });
     }
 
     const cleanName = name.trim();
     const slug = slugify(cleanName);
 
-    const duplicate = await Brand.findOne({
-      _id: { $ne: id },
-      $or: [
-        { name: cleanName },
-        { slug },
-      ],
-    });
+    const duplicate =
+      await Brand.findOne({
+        _id: { $ne: id },
+        $or: [
+          { name: cleanName },
+          { slug },
+        ],
+      });
 
     if (duplicate) {
       return res.status(409).json({
-        message: "A brand with this name already exists",
+        message:
+          "A brand with this name already exists",
       });
     }
 
@@ -239,16 +275,26 @@ async function update(req, res) {
     brand.bannerImage = bannerImage;
   }
 
-  if (bestSellingDescription !== undefined) {
-    brand.bestSellingDescription = bestSellingDescription;
+  if (
+    bestSellingDescription !==
+    undefined
+  ) {
+    brand.bestSellingDescription =
+      bestSellingDescription;
   }
 
-  if (bestRatedDescription !== undefined) {
-    brand.bestRatedDescription = bestRatedDescription;
+  if (
+    bestRatedDescription !== undefined
+  ) {
+    brand.bestRatedDescription =
+      bestRatedDescription;
   }
 
-  if (collectionDescription !== undefined) {
-    brand.collectionDescription = collectionDescription;
+  if (
+    collectionDescription !== undefined
+  ) {
+    brand.collectionDescription =
+      collectionDescription;
   }
 
   if (isActive !== undefined) {
@@ -260,7 +306,9 @@ async function update(req, res) {
 
     if (brand.verified) {
       brand.verificationEmail =
-        req.user?.email || brand.verificationEmail || "";
+        req.user?.email ||
+        brand.verificationEmail ||
+        "";
     } else {
       brand.verificationEmail = "";
     }
@@ -271,6 +319,56 @@ async function update(req, res) {
   res.json({
     message: "Brand updated successfully",
     brand,
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * PATCH /api/brands/:id/verify
+ * ---------------------------------------------------------
+ */
+async function verify(req, res) {
+  const { id } = req.params;
+  const { verified } = req.body;
+
+  if (!isValidObjectId(id)) {
+    return res.status(400).json({
+      message: "Invalid brand ID",
+    });
+  }
+
+  if (typeof verified !== "boolean") {
+    return res.status(400).json({
+      message:
+        "verified must be a boolean value",
+    });
+  }
+
+  const brand =
+    await Brand.findById(id);
+
+  if (!brand) {
+    return res.status(404).json({
+      message: "Brand not found",
+    });
+  }
+
+  brand.verified = verified;
+
+  if (verified) {
+    brand.verificationEmail =
+      req.user?.email || "";
+  } else {
+    brand.verificationEmail = "";
+  }
+
+  await brand.save();
+
+  res.json({
+    message: verified
+      ? "Brand verified successfully"
+      : "Brand verification removed successfully",
+    ...brand.toObject(),
   });
 }
 
@@ -291,18 +389,20 @@ async function updateStatus(req, res) {
 
   if (typeof isActive !== "boolean") {
     return res.status(400).json({
-      message: "isActive must be a boolean value",
+      message:
+        "isActive must be a boolean value",
     });
   }
 
-  const brand = await Brand.findByIdAndUpdate(
-    id,
-    { isActive },
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  const brand =
+    await Brand.findByIdAndUpdate(
+      id,
+      { isActive },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
   if (!brand) {
     return res.status(404).json({
@@ -311,7 +411,8 @@ async function updateStatus(req, res) {
   }
 
   res.json({
-    message: "Brand status updated successfully",
+    message:
+      "Brand status updated successfully",
     brand,
   });
 }
@@ -330,7 +431,8 @@ async function remove(req, res) {
     });
   }
 
-  const brand = await Brand.findByIdAndDelete(id);
+  const brand =
+    await Brand.findByIdAndDelete(id);
 
   if (!brand) {
     return res.status(404).json({
@@ -348,6 +450,7 @@ module.exports = {
   getOne,
   create,
   update,
+  verify,
   remove,
   updateStatus,
 };

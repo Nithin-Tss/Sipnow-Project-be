@@ -1,20 +1,26 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
+async function checkEmail(req, res) {
+  const email = String(req.query.email || "").trim().toLowerCase();
+  const existing = await User.findOne({ email });
+  res.json({ available: !existing });
+}
+
 async function register(req, res) {
-  const { name, email, password } = req.body;
+  const { name, email, password, phone } = req.body;
 
   const existing = await User.findOne({ email });
   if (existing) {
     return res.status(409).json({ message: "Email is already registered" });
   }
 
-  const user = await User.create({ name, email, password });
+  const user = await User.create({ name, email, password, phone });
   const token = generateToken(user);
 
   res.status(201).json({
     token,
-    user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role },
   });
 }
 
@@ -29,7 +35,7 @@ async function login(req, res) {
   const token = generateToken(user);
   res.json({
     token,
-    user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role },
   });
 }
 
@@ -44,4 +50,4 @@ async function me(req, res) {
   });
 }
 
-module.exports = { register, login, me };
+module.exports = { checkEmail, register, login, me };
