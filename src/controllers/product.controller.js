@@ -51,6 +51,11 @@ async function remove(req, res) {
   res.status(204).send();
 }
 
+async function removeAll(req, res) {
+  const { deletedCount } = await Product.deleteMany({});
+  res.json({ message: "All products deleted", deletedCount });
+}
+
 async function verify(req, res) {
   const verified = Boolean(req.body.verified);
   const product = await Product.findByIdAndUpdate(
@@ -65,4 +70,4 @@ async function verify(req, res) {
   res.json(product);
 }
 
-module.exports = { list, getOne, create, update, remove, verify };
+module.exports = { list, getOne, create, update, remove, removeAll, verify };
