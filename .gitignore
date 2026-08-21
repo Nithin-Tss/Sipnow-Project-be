@@ -24,3 +24,4 @@ build/
 
 # Coverage
 coverage/
+env
