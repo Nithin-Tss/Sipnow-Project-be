@@ -143,8 +143,8 @@ async function create(req, res) {
     brands,
     discountType,
     discountValue,
-    startDate,
-    endDate,
+    startDate: startDate || null,
+    endDate: endDate || null,
     priority,
     isActive,
   });
@@ -201,7 +201,11 @@ async function update(req, res) {
 
   for (const field of updatableFields) {
     if (req.body[field] !== undefined) {
-      promotion[field] = req.body[field];
+      if (field === "startDate" || field === "endDate") {
+        promotion[field] = req.body[field] || null;
+      } else {
+        promotion[field] = req.body[field];
+      }
     }
   }
 

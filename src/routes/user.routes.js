@@ -6,6 +6,7 @@ const {
   updateProfile,
   changePassword,
   getAllUsers,
+  createUser,
   updateUserRole,
   deleteUser,
 } = require("../controllers/user.controller");
@@ -17,6 +18,7 @@ router.put("/change-password", requireAuth, changePassword);
 
 // Admin user management routes (requires authentication & admin role)
 router.get("/", requireAuth, requireAdmin, getAllUsers);
+router.post("/", requireAuth, requireAdmin, createUser);
 router.put("/:id/role", requireAuth, requireAdmin, updateUserRole);
 router.delete("/:id", requireAuth, requireAdmin, deleteUser);
 
